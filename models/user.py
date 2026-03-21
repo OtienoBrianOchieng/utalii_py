@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from flask import current_app
 
-db = SQLAlchemy()
+from models import db 
 
 class User(db.Model):
     __tablename__ = 'users'

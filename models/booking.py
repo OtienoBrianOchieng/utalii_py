@@ -1,9 +1,8 @@
-# models/booking.py
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 import enum
 
-db = SQLAlchemy()
+from models import db 
 
 class BookingStatus(enum.Enum):
     PENDING = 'pending'
@@ -18,8 +17,7 @@ class Booking(db.Model):
     booking_reference = db.Column(db.String(20), unique=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
-    # Polymorphic - can book either a hotel room or a destination activity
-    booking_type = db.Column(db.String(20), nullable=False)  # 'hotel', 'destination'
+    booking_type = db.Column(db.String(20), nullable=False)
     
     # Hotel booking fields
     hotel_id = db.Column(db.Integer, db.ForeignKey('hotels.id'), nullable=True)
@@ -39,24 +37,26 @@ class Booking(db.Model):
     currency = db.Column(db.String(10), default='KES')
     status = db.Column(db.Enum(BookingStatus), default=BookingStatus.PENDING)
     special_requests = db.Column(db.Text)
-    guest_names = db.Column(db.String(500))  # JSON string of guest names
+    guest_names = db.Column(db.String(500))
     contact_email = db.Column(db.String(120))
     contact_phone = db.Column(db.String(20))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    user = db.relationship('User', backref='bookings_list', foreign_keys=[user_id])
-    hotel = db.relationship('Hotel', backref='bookings_list', foreign_keys=[hotel_id])
+    # Use string references
+    
+    
+    hotel = db.relationship('Hotel', back_populates='bookings')
     room = db.relationship('HotelRoom', backref='bookings', foreign_keys=[room_id])
     destination = db.relationship('Destination', backref='bookings', foreign_keys=[destination_id])
     
+    
+    
     def generate_reference(self):
-        """Generate unique booking reference"""
         import random
         import string
-        prefix = 'KT'  # Kenya Tourism
+        prefix = 'KT'
         timestamp = datetime.now().strftime('%y%m%d')
         random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
         return f"{prefix}{timestamp}{random_chars}"
@@ -67,7 +67,6 @@ class Booking(db.Model):
             self.booking_reference = self.generate_reference()
     
     def to_dict(self):
-        """Basic booking info"""
         result = {
             'id': self.id,
             'booking_reference': self.booking_reference,
@@ -86,7 +85,6 @@ class Booking(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
         
-        # Add related item details
         if self.booking_type == 'hotel' and self.hotel:
             result['hotel'] = {
                 'id': self.hotel.id,
@@ -99,7 +97,6 @@ class Booking(db.Model):
                     'name': self.room.name,
                     'price_per_night': self.room.price_per_night
                 }
-        
         elif self.booking_type == 'destination' and self.destination:
             result['destination'] = {
                 'id': self.destination.id,
@@ -110,13 +107,12 @@ class Booking(db.Model):
         return result
     
     def to_dict_detail(self):
-        """Detailed booking info for confirmation"""
         result = self.to_dict()
         result['guest_names'] = self.guest_names.split(',') if self.guest_names else []
-        result['user'] = {
-            'id': self.user.id,
-            'full_name': self.user.full_name,
-            'email': self.user.email
-        } if self.user else None
-        
+        if self.user:
+            result['user'] = {
+                'id': self.user.id,
+                'full_name': self.user.full_name,
+                'email': self.user.email
+            }
         return result

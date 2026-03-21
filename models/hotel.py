@@ -1,10 +1,9 @@
-# models/hotel.py
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+from models import db 
 
-# Association table for hotel amenities
+# Association table
 hotel_amenities = db.Table('hotel_amenities',
     db.Column('hotel_id', db.Integer, db.ForeignKey('hotels.id'), primary_key=True),
     db.Column('amenity_id', db.Integer, db.ForeignKey('amenities.id'), primary_key=True)
@@ -23,7 +22,7 @@ class Hotel(db.Model):
     phone = db.Column(db.String(50))
     email = db.Column(db.String(100))
     website = db.Column(db.String(200))
-    price_range = db.Column(db.String(50))  # Budget, Mid-range, Luxury
+    price_range = db.Column(db.String(50))
     check_in_time = db.Column(db.String(20))
     check_out_time = db.Column(db.String(20))
     rating = db.Column(db.Float, default=0.0)
@@ -31,16 +30,15 @@ class Hotel(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    # Use string references
     images = db.relationship('HotelImage', backref='hotel', lazy=True, cascade='all, delete-orphan')
     amenities = db.relationship('Amenity', secondary=hotel_amenities, backref='hotels')
     rooms = db.relationship('HotelRoom', backref='hotel', lazy=True, cascade='all, delete-orphan')
     restaurant_menus = db.relationship('RestaurantMenu', backref='hotel', lazy=True, cascade='all, delete-orphan')
     reviews = db.relationship('HotelReview', backref='hotel', lazy=True, cascade='all, delete-orphan')
-    bookings = db.relationship('Booking', backref='hotel', lazy=True)
+    bookings = db.relationship('Booking', back_populates='hotel')
     
     def to_dict_basic(self):
-        """Basic info for listings"""
         primary_image = next((img for img in self.images if img.is_primary), self.images[0] if self.images else None)
         return {
             'id': self.id,
@@ -57,7 +55,6 @@ class Hotel(db.Model):
         }
     
     def to_dict_detail(self):
-        """Full details for single hotel view"""
         return {
             'id': self.id,
             'name': self.name,
@@ -122,7 +119,6 @@ class HotelRoom(db.Model):
     size_sqm = db.Column(db.Integer)
     available = db.Column(db.Boolean, default=True)
     
-    # Room amenities
     has_wifi = db.Column(db.Boolean, default=False)
     has_ac = db.Column(db.Boolean, default=False)
     has_tv = db.Column(db.Boolean, default=False)

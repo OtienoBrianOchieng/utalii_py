@@ -1,7 +1,6 @@
 # app.py
 import os
 from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_mail import Mail
@@ -12,7 +11,8 @@ import logging
 load_dotenv()
 
 # Initialize extensions
-db = SQLAlchemy()
+from models import db
+
 migrate = Migrate()
 mail = Mail()
 

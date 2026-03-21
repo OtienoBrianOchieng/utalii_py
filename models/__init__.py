@@ -1,14 +1,22 @@
 # models/__init__.py
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize db here - this will be imported by app.py
+db = SQLAlchemy()
+
+# Import all models after db is defined
 from models.user import User
 from models.destination import Destination, DestinationImage, DestinationVideo, Review
 from models.hotel import Hotel, Amenity, HotelImage, HotelRoom, RoomImage, RestaurantMenu, MenuCategory, MenuItem, HotelReview
 from models.booking import Booking, BookingStatus
 
-# This allows importing directly from models
+
+# Export all models
 __all__ = [
-    'User', 
+    'db',
+    'User',
     'Destination', 'DestinationImage', 'DestinationVideo', 'Review',
-    'Hotel', 'Amenity', 'HotelImage', 'HotelRoom', 'RoomImage', 
+    'Hotel', 'Amenity', 'HotelImage', 'HotelRoom', 'RoomImage',
     'RestaurantMenu', 'MenuCategory', 'MenuItem', 'HotelReview',
     'Booking', 'BookingStatus'
 ]

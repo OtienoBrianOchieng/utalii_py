@@ -1,9 +1,9 @@
 # routes/destination_routes.py
 from flask import Blueprint, request, jsonify, send_from_directory, current_app
-from models.destination import Destination, Review, DestinationImage
-from models.user import User
+# from models.destination import Destination, Review, DestinationImage
+# from models.user import User
 from utils.auth import token_required, optional_token
-from app import db
+from models import db, User, Destination, Review, DestinationImage  
 from sqlalchemy import func
 import os
 

@@ -1,8 +1,8 @@
 # routes/hotel_routes.py
 from flask import Blueprint, request, jsonify, current_app
-from models.hotel import Hotel, HotelReview, Amenity, HotelRoom
+# from models.hotel import Hotel, HotelReview, Amenity, HotelRoom
 from utils.auth import token_required, optional_token
-from app import db
+from models import db, User, Hotel, HotelReview, Amenity, HotelRoom
 from sqlalchemy import func
 
 hotel_bp = Blueprint('hotels', __name__)

@@ -1,8 +1,8 @@
 # routes/auth_routes.py
 from flask import Blueprint, request, jsonify, current_app
-from models.user import User
+# from models.user import User
 from utils.auth import token_required
-from app import db
+from models import db, User
 import re
 import requests
 from datetime import datetime

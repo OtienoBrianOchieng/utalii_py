@@ -1,11 +1,11 @@
 # routes/booking_routes.py
 from flask import Blueprint, request, jsonify, current_app
-from models.booking import Booking, BookingStatus
-from models.user import User
-from models.hotel import Hotel, HotelRoom
-from models.destination import Destination
+# from models.booking import Booking, BookingStatus
+# from models.user import User
+# from models.hotel import Hotel, HotelRoom
+# from models.destination import Destination
 from utils.auth import token_required
-from app import db
+from models import db, User, Hotel, HotelRoom, Destination, Booking, BookingStatus
 from datetime import datetime, timedelta
 import json
 

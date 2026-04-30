@@ -244,3 +244,21 @@ def confirm_booking(current_user, booking_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+# Add to booking_routes.py
+
+@booking_bp.route('/admin/all', methods=['GET'])
+@token_required
+def get_all_bookings_admin(current_user):
+    """Get all bookings for admin (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    status_filter = request.args.get('status')
+    query = Booking.query
+    
+    if status_filter:
+        query = query.filter_by(status=BookingStatus(status_filter))
+    
+    bookings = query.order_by(Booking.created_at.desc()).all()
+    return jsonify([b.to_dict() for b in bookings]), 200

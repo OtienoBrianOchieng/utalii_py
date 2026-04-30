@@ -9,6 +9,7 @@ from models.user import User
 from models.destination import Destination, DestinationImage, DestinationVideo, Review
 from models.hotel import Hotel, Amenity, HotelImage, HotelRoom, RoomImage, RestaurantMenu, MenuCategory, MenuItem, HotelReview
 from models.booking import Booking, BookingStatus
+from models.tour_company import TourCompany, TourCompanyImage, TourCompanyReview, TourBooking  # Add this line
 
 
 # Export all models
@@ -18,5 +19,6 @@ __all__ = [
     'Destination', 'DestinationImage', 'DestinationVideo', 'Review',
     'Hotel', 'Amenity', 'HotelImage', 'HotelRoom', 'RoomImage',
     'RestaurantMenu', 'MenuCategory', 'MenuItem', 'HotelReview',
-    'Booking', 'BookingStatus'
+    'Booking', 'BookingStatus',
+    'TourCompany', 'TourCompanyImage', 'TourCompanyReview', 'TourBooking'  # Add this line
 ]

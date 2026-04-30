@@ -74,3 +74,7 @@ class User(db.Model):
             'profile_image': self.profile_image,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+    
+    def is_admin(self):
+        """Check if user is admin"""
+        return self.user_type == 'admin'

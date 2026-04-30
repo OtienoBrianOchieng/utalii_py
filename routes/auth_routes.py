@@ -164,3 +164,51 @@ def verify_token():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+
+
+@auth_bp.route('/admin/users', methods=['GET'])
+@token_required
+def get_all_users(current_user):
+    """Get all users (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    users = User.query.all()
+    return jsonify([user.to_dict() for user in users]), 200
+
+
+@auth_bp.route('/admin/users/<int:user_id>', methods=['PUT'])
+@token_required
+def update_user_by_admin(current_user, user_id):
+    """Update any user (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    
+    if 'full_name' in data:
+        user.full_name = data['full_name']
+    if 'phone_number' in data:
+        user.phone_number = data['phone_number']
+    if 'user_type' in data:
+        user.user_type = data['user_type']
+    
+    db.session.commit()
+    return jsonify(user.to_dict()), 200
+
+
+@auth_bp.route('/admin/users/<int:user_id>', methods=['DELETE'])
+@token_required
+def delete_user_by_admin(current_user, user_id):
+    """Delete any user (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User deleted successfully'}), 200

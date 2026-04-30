@@ -137,3 +137,83 @@ def get_amenities():
         return jsonify([a.to_dict() for a in amenities]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Add to hotel_routes.py
+
+@hotel_bp.route('/admin/hotels', methods=['POST'])
+@token_required
+def create_hotel_admin(current_user):
+    """Create a new hotel (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        hotel = Hotel(
+            name=data['name'],
+            description=data.get('description'),
+            address=data.get('address'),
+            destination_id=data.get('destination_id'),
+            price_range=data.get('price_range'),
+            rating=data.get('rating', 0),
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude')
+        )
+        
+        db.session.add(hotel)
+        db.session.commit()
+        
+        return jsonify(hotel.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@hotel_bp.route('/admin/hotels/<int:hotel_id>', methods=['PUT'])
+@token_required
+def update_hotel_admin(current_user, hotel_id):
+    """Update a hotel (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        hotel = Hotel.query.get_or_404(hotel_id)
+        data = request.get_json()
+        
+        if 'name' in data:
+            hotel.name = data['name']
+        if 'description' in data:
+            hotel.description = data['description']
+        if 'address' in data:
+            hotel.address = data['address']
+        if 'destination_id' in data:
+            hotel.destination_id = data['destination_id']
+        if 'price_range' in data:
+            hotel.price_range = data['price_range']
+        if 'rating' in data:
+            hotel.rating = data['rating']
+        if 'latitude' in data:
+            hotel.latitude = data['latitude']
+        if 'longitude' in data:
+            hotel.longitude = data['longitude']
+        
+        db.session.commit()
+        return jsonify(hotel.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@hotel_bp.route('/admin/hotels/<int:hotel_id>', methods=['DELETE'])
+@token_required
+def delete_hotel_admin(current_user, hotel_id):
+    """Delete a hotel (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    hotel = Hotel.query.get_or_404(hotel_id)
+    db.session.delete(hotel)
+    db.session.commit()
+    
+    return jsonify({'message': 'Hotel deleted successfully'}), 200

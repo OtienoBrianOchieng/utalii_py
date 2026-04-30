@@ -119,3 +119,91 @@ def get_regions():
         return jsonify([r[0] for r in regions if r[0]]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+
+# Add to destination_routes.py
+
+@destination_bp.route('/admin/destinations', methods=['POST'])
+@token_required
+def create_destination_admin(current_user):
+    """Create a new destination (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        destination = Destination(
+            name=data['name'],
+            description=data['description'],
+            category=data['category'],
+            region=data['region'],
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude'),
+            best_time_to_visit=data.get('best_time_to_visit'),
+            entry_fee=data.get('entry_fee'),
+            opening_hours=data.get('opening_hours'),
+            website=data.get('website')
+        )
+        
+        db.session.add(destination)
+        db.session.commit()
+        
+        return jsonify(destination.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@destination_bp.route('/admin/destinations/<int:dest_id>', methods=['PUT'])
+@token_required
+def update_destination_admin(current_user, dest_id):
+    """Update a destination (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        destination = Destination.query.get_or_404(dest_id)
+        data = request.get_json()
+        
+        if 'name' in data:
+            destination.name = data['name']
+        if 'description' in data:
+            destination.description = data['description']
+        if 'category' in data:
+            destination.category = data['category']
+        if 'region' in data:
+            destination.region = data['region']
+        if 'latitude' in data:
+            destination.latitude = data['latitude']
+        if 'longitude' in data:
+            destination.longitude = data['longitude']
+        if 'best_time_to_visit' in data:
+            destination.best_time_to_visit = data['best_time_to_visit']
+        if 'entry_fee' in data:
+            destination.entry_fee = data['entry_fee']
+        if 'opening_hours' in data:
+            destination.opening_hours = data['opening_hours']
+        if 'website' in data:
+            destination.website = data['website']
+        
+        db.session.commit()
+        return jsonify(destination.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@destination_bp.route('/admin/destinations/<int:dest_id>', methods=['DELETE'])
+@token_required
+def delete_destination_admin(current_user, dest_id):
+    """Delete a destination (admin only)"""
+    if current_user.user_type != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    destination = Destination.query.get_or_404(dest_id)
+    db.session.delete(destination)
+    db.session.commit()
+    
+    return jsonify({'message': 'Destination deleted successfully'}), 200

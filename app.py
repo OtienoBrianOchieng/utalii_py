@@ -79,11 +79,15 @@ def register_blueprints(app):
     from routes.destination_routes import destination_bp
     from routes.hotel_routes import hotel_bp
     from routes.booking_routes import booking_bp
+    from routes.tour_company_routes import tour_bp
+    
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(destination_bp, url_prefix='/api/destinations')
     app.register_blueprint(hotel_bp, url_prefix='/api/hotels')
     app.register_blueprint(booking_bp, url_prefix='/api/bookings')
+    app.register_blueprint(tour_bp, url_prefix='/api/tour-companies')
+    
 
 def create_default_admin():
     """Create default admin user if none exists"""

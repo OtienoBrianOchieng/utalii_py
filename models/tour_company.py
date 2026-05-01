@@ -137,7 +137,7 @@ class TourCompany(db.Model):
             return None
         
         primary_image = next((img for img in self.images if img.is_primary), self.images[0] if self.images else None)
-        active_discounts = [d for d in self.discounts if d.is_active and d.is_valid()]
+        active_discounts = [d.to_dict() for d in self.discounts if d.is_active and d.is_valid()]
         
         return {
             'id': self.id,
@@ -162,6 +162,7 @@ class TourCompany(db.Model):
             'primary_image': primary_image.to_dict() if primary_image else None,
             'packages_count': len(self.packages),
             'gallery_count': len(self.gallery),
+            'active_discounts': active_discounts,
             'active_discounts_count': len(active_discounts)
         }
     

@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, date, timedelta
 from utils.auth import token_required
 from models import db, User, TourCompany, TourCompanyImage, TourCompanyGallery, TourCompanyReview, TourBooking, TourPackage, CompanyDiscount, DiscountUsage, TourPackageBooking, CompanyDocument
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import os
 import json
 from werkzeug.utils import secure_filename
@@ -16,10 +16,16 @@ tour_bp = Blueprint('tour_companies', __name__, url_prefix='/api/tour-companies'
 def get_tour_companies():
     """Get all tour companies with filters (only verified and active)"""
     try:
+        print("=" * 50)
+        print("DEBUG: get_tour_companies called")
+        print("=" * 50)
+        
         service_type = request.args.get('service_type')
         price_range = request.args.get('price_range')
         min_rating = request.args.get('min_rating', type=float)
         search = request.args.get('search')
+        
+        print(f"Filters: service_type={service_type}, price_range={price_range}, min_rating={min_rating}, search={search}")
         
         query = TourCompany.query.filter(
             TourCompany.is_verified == True,
@@ -35,20 +41,44 @@ def get_tour_companies():
             query = query.filter(TourCompany.rating >= min_rating)
         if search:
             query = query.filter(
-                db.or_(
+                or_(
                     TourCompany.name.ilike(f'%{search}%'),
                     TourCompany.company_name.ilike(f'%{search}%'),
                     TourCompany.description.ilike(f'%{search}%')
                 )
             )
         
+        print("Executing query...")
         companies = query.order_by(TourCompany.rating.desc()).all()
-        result = [c.to_dict() for c in companies if c.to_dict() is not None]
+        print(f"Found {len(companies)} companies")
+        
+        print("Converting to dict...")
+        result = []
+        for idx, c in enumerate(companies):
+            print(f"  Processing company {idx+1}: {c.name}")
+            try:
+                c_dict = c.to_dict()
+                if c_dict is not None:
+                    result.append(c_dict)
+                    print(f"    Success! Has discount: {c_dict.get('active_discounts_count', 0) > 0}")
+                else:
+                    print(f"    Company returned None (not visible)")
+            except Exception as e:
+                print(f"    ERROR converting company {c.name}: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                raise
+        
+        print(f"Successfully converted {len(result)} companies")
+        print("Returning JSON response")
+        
         return jsonify(result), 200
         
     except Exception as e:
+        print(f"ERROR in get_tour_companies: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @tour_bp.route('/<int:company_id>', methods=['GET'])
 def get_tour_company(company_id):
@@ -61,95 +91,6 @@ def get_tour_company(company_id):
             
         return jsonify(company.to_dict_admin()), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@tour_bp.route('/register', methods=['POST'])
-def register_company():
-    """Register a new tour company (public - company self-registration)"""
-    try:
-        data = request.get_json()
-        
-        required = ['name', 'company_name', 'description', 'email', 'phone', 'contact_person_name', 'contact_person_phone']
-        for field in required:
-            if field not in data:
-                return jsonify({'error': f'{field} is required'}), 400
-        
-        existing = TourCompany.query.filter_by(email=data['email']).first()
-        if existing:
-            return jsonify({'error': 'A company with this email already exists'}), 400
-        
-        company = TourCompany(
-            name=data['name'],
-            company_name=data['company_name'],
-            description=data['description'],
-            service_type=data.get('service_type'),
-            price_range=data.get('price_range'),
-            min_price=data.get('min_price'),
-            max_price=data.get('max_price'),
-            currency=data.get('currency', 'KES'),
-            email=data['email'],
-            phone=data['phone'],
-            whatsapp=data.get('whatsapp'),
-            website=data.get('website'),
-            address=data.get('address'),
-            established_year=data.get('established_year'),
-            license_number=data.get('license_number'),
-            insurance_info=data.get('insurance_info'),
-            member_of=data.get('member_of'),
-            languages=data.get('languages'),
-            group_size_min=data.get('group_size_min', 1),
-            group_size_max=data.get('group_size_max', 50),
-            cancellation_policy=data.get('cancellation_policy'),
-            contact_person_name=data['contact_person_name'],
-            contact_person_title=data.get('contact_person_title'),
-            contact_person_phone=data['contact_person_phone'],
-            contact_person_email=data.get('contact_person_email'),
-            facebook=data.get('facebook'),
-            instagram=data.get('instagram'),
-            twitter=data.get('twitter'),
-            linkedin=data.get('linkedin'),
-            youtube=data.get('youtube'),
-            tiktok=data.get('tiktok'),
-            is_verified=False,
-            is_active=False,
-            verification_status='pending',
-            created_by=None
-        )
-        
-        db.session.add(company)
-        db.session.flush()
-        
-        documents = data.get('documents', {})
-        doc_mapping = {
-            'business_registration': 'registration',
-            'tax_compliance': 'tax',
-            'insurance_certificate': 'insurance',
-            'license_document': 'license'
-        }
-        
-        for doc_key, doc_type in doc_mapping.items():
-            if doc_key in documents and documents[doc_key]:
-                doc = CompanyDocument(
-                    company_id=company.id,
-                    document_type=doc_type,
-                    document_name=f"{doc_type}_document",
-                    file_path=documents[doc_key],
-                    uploaded_by=None,
-                    status='pending'
-                )
-                db.session.add(doc)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Company registration submitted successfully. Awaiting admin verification.',
-            'company_id': company.id,
-            'verification_status': 'pending'
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
@@ -187,7 +128,7 @@ def get_all_packages():
             query = query.filter(TourPackage.base_price <= max_price)
         if search:
             query = query.filter(
-                db.or_(
+                or_(
                     TourPackage.name.ilike(f'%{search}%'),
                     TourPackage.description.ilike(f'%{search}%')
                 )
@@ -763,6 +704,79 @@ def create_company_admin(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Add this to your tour_company_routes.py - PUBLIC REGISTRATION (no token required)
+
+@tour_bp.route('/register', methods=['POST'])
+def company_register_company():
+    """Public company registration - no authentication required"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required = ['name', 'company_name', 'description', 'email', 'phone', 
+                   'contact_person_name', 'contact_person_phone', 'agreed_to_policy']
+        for field in required:
+            if field not in data:
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        # Check if company with same email already exists
+        existing = TourCompany.query.filter_by(email=data['email']).first()
+        if existing:
+            return jsonify({'error': 'A company with this email already exists'}), 400
+        
+        # Create company (not verified, not active until admin approval)
+        company = TourCompany(
+            name=data['name'],
+            company_name=data['company_name'],
+            description=data['description'],
+            service_type=data.get('service_type'),
+            price_range=data.get('price_range'),
+            min_price=data.get('min_price'),
+            max_price=data.get('max_price'),
+            currency=data.get('currency', 'KES'),
+            email=data['email'],
+            phone=data['phone'],
+            whatsapp=data.get('whatsapp'),
+            website=data.get('website'),
+            address=data.get('address'),
+            languages=data.get('languages'),
+            group_size_min=data.get('group_size_min', 1),
+            group_size_max=data.get('group_size_max', 50),
+            cancellation_policy=data.get('cancellation_policy'),
+            contact_person_name=data['contact_person_name'],
+            contact_person_title=data.get('contact_person_title'),
+            contact_person_phone=data['contact_person_phone'],
+            contact_person_email=data.get('contact_person_email'),
+            facebook=data.get('facebook'),
+            instagram=data.get('instagram'),
+            twitter=data.get('twitter'),
+            linkedin=data.get('linkedin'),
+            youtube=data.get('youtube'),
+            tiktok=data.get('tiktok'),
+            is_verified=False,
+            is_active=False,
+            verification_status='pending',
+            created_by=None
+        )
+        
+        db.session.add(company)
+        db.session.flush()  # Get company ID without committing
+        
+        # Handle document uploads if provided (base64 or URLs)
+        # For file uploads, you'd handle multipart form data separately
+        # This is a simplified version for JSON registration
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Company registration submitted successfully. Awaiting admin verification.',
+            'company_id': company.id,
+            'verification_status': 'pending'
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @tour_bp.route('/admin/companies/<int:company_id>', methods=['PUT'])
 @token_required
